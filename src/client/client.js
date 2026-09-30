@@ -663,7 +663,7 @@
     });
     var status = $("#form-status", form);
     if (status) {
-      status.textContent = "Nenhum dado é enviado a servidores externos nesta versão.";
+      status.textContent = "Preencha e envie — a mensagem chega no e-mail do editor.";
     }
   }
 
@@ -778,25 +778,85 @@
         return;
       }
 
-      if (submitBtn) submitBtn.disabled = true;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.dataset.label = submitBtn.innerHTML;
+        submitBtn.innerHTML = "Enviando…";
+      }
+      var statusEl = $("#form-status", form);
+      if (statusEl) statusEl.textContent = "Enviando briefing…";
 
+      var record;
       try {
-        var record = storage.create(
+        record = storage.create(
           Object.assign({}, result.data, { source: "contact.html" })
-        );
-
-        showSuccess(record, form, successCard);
-        showToast(
-          "Briefing enviado",
-          "Protocolo " + record.protocol + ". Respondo em até 1 dia útil.",
-          "success",
-          7000
         );
       } catch (err) {
         console.error("[EditorHub] falha ao salvar briefing:", err);
         showToast("Não foi possível enviar", String(err.message || err), "error", 7000);
-      } finally {
-        if (submitBtn) submitBtn.disabled = false;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          if (submitBtn.dataset.label) submitBtn.innerHTML = submitBtn.dataset.label;
+        }
+        return;
+      }
+
+      function finish(emailState) {
+        try {
+          var delivery = { provider: "emailjs", status: emailState, at: new Date().toISOString() };
+          if (storage.updateById) storage.updateById(record.id, { emailStatus: delivery });
+          record.emailStatus = delivery;
+        } catch (e) { /* mantém fluxo mesmo se patch falhar */ }
+
+        showSuccess(record, form, successCard);
+
+        if (emailState === "sent") {
+          showToast(
+            "Briefing enviado",
+            "Protocolo " + record.protocol + ". Chegou no e-mail do editor.",
+            "success",
+            7000
+          );
+        } else if (emailState === "not-configured") {
+          showToast(
+            "Salvo localmente — e-mail ainda não configurado",
+            "Protocolo " + record.protocol + ". Preencha src/core/email_config.js para receber por e-mail.",
+            "error",
+            9000
+          );
+        } else {
+          showToast(
+            "Salvo, mas o e-mail falhou",
+            "Protocolo " + record.protocol + ". O briefing está no painel; tente de novo.",
+            "error",
+            9000
+          );
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          if (submitBtn.dataset.label) submitBtn.innerHTML = submitBtn.dataset.label;
+        }
+        if (statusEl) statusEl.textContent = "Preencha e envie — a mensagem chega no e-mail do editor.";
+      }
+
+      try {
+        var bridge = window.EditorHubEmail;
+        if (bridge && bridge.isConfigured && bridge.isConfigured()) {
+          bridge.send(record).then(
+            function () { finish("sent"); },
+            function (err) {
+              console.error("[EditorHub] EmailJS falhou:", err);
+              finish("failed");
+            }
+          );
+        } else {
+          console.warn("[EditorHub] EmailJS não configurado — ver src/core/email_config.js");
+          finish("not-configured");
+        }
+      } catch (err) {
+        console.error("[EditorHub] EmailJS erro:", err);
+        finish("failed");
       }
     });
 

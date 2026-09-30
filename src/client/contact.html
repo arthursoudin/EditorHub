@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Contato — Editor Hub</title>
   <meta name="description" content="Envie seu briefing de edição de vídeo: formato, prazo e orçamento. Resposta em até 1 dia útil." />
-  <meta name="theme-color" content="#080d10" />
+  <meta name="theme-color" content="#020406" />
   <link rel="icon" type="image/svg+xml" href="../../public/assets/logo.svg" />
   <script>document.documentElement.classList.add("js");</script>
   <link rel="stylesheet" href="style.css" />
@@ -167,7 +167,7 @@
                   <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round" /></svg>
                 </button>
                 <button class="btn btn--ghost" type="reset">Limpar</button>
-                <span class="form__status" id="form-status">Nenhum dado é enviado a servidores externos nesta versão.</span>
+                <span class="form__status" id="form-status">Preencha e envie — a mensagem chega no e-mail do editor.</span>
               </div>
             </form>
           </div>
@@ -325,6 +325,8 @@
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
   <script src="../core/storage.js"></script>
+  <script src="../core/email_config.js"></script>
+  <script src="../core/email_bridge.js"></script>
   <script src="client.js"></script>
 </body>
 </html>
