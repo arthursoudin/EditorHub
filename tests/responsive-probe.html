@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>probe de responsividade</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #eee; }
+    .probe { display: inline-block; vertical-align: top; margin: 6px; border: 1px solid #444; }
+    pre { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <pre id="res">aguardando…</pre>
+  <div id="frames"></div>
+
+  <script>
+    (function () {
+      var PAGES = ["client/index", "client/portfolio", "client/contact", "admin/dashboard"];
+      var WIDTHS = [360, 430, 768, 1024, 1440];
+      var out = [];
+      var jobs = [];
+
+      function probe(page, width) {
+        return new Promise(function (resolve) {
+          var wrap = document.createElement("div");
+          wrap.className = "probe";
+          wrap.style.width = width + "px";
+
+          var label = document.createElement("pre");
+          label.textContent = page + " @ " + width;
+
+          var frame = document.createElement("iframe");
+          frame.style.width = width + "px";
+          frame.style.height = "10px";
+          frame.style.border = "0";
+          frame.src = "/src/" + page + ".html";
+
+          wrap.appendChild(label);
+          wrap.appendChild(frame);
+          document.getElementById("frames").appendChild(wrap);
+
+          frame.onload = function () {
+            window.setTimeout(function () {
+              try {
+                var doc = frame.contentDocument;
+                var win = frame.contentWindow;
+                var overflow = doc.documentElement.scrollWidth - win.innerWidth;
+                var offenders = [];
+
+                if (overflow > 1) {
+                  Array.prototype.forEach.call(doc.querySelectorAll("body *"), function (el) {
+                    var rect = el.getBoundingClientRect();
+                    if (rect.right > win.innerWidth + 1 && offenders.length < 6) {
+                      offenders.push(
+                        (el.className && typeof el.className === "string"
+                          ? "." + el.className.split(" ")[0]
+                          : el.tagName.toLowerCase()) +
+                          "[" + Math.round(rect.right) + "]"
+                      );
+                    }
+                  });
+                }
+
+                out.push(
+                  page +
+                    " @ " +
+                    width +
+                    ": innerWidth=" +
+                    win.innerWidth +
+                    " scrollWidth=" +
+                    doc.documentElement.scrollWidth +
+                    " overflow=" +
+                    overflow +
+                    (offenders.length ? " | culpados: " + offenders.join(", ") : " | OK")
+                );
+              } catch (err) {
+                out.push(page + " @ " + width + ": ERRO " + err.message);
+              }
+              resolve();
+            }, 220);
+          };
+        });
+      }
+
+      PAGES.forEach(function (page) {
+        WIDTHS.forEach(function (width) {
+          jobs.push(function () {
+            return probe(page, width);
+          });
+        });
+      });
+
+      jobs
+        .reduce(function (chain, job) {
+          return chain.then(job);
+        }, Promise.resolve())
+        .then(function () {
+          out.sort();
+          document.getElementById("res").textContent = out.join("\n");
+        });
+    })();
+  </script>
+</body>
+</html>

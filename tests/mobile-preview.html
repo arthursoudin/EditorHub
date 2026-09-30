@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>preview mobile (430px)</title>
+  <style>
+    body { margin: 0; background: #333; font-family: monospace; }
+    .row { display: flex; gap: 12px; padding: 12px; align-items: flex-start; }
+    .device { border: 1px solid #666; border-radius: 10px; overflow: hidden; background: #000; }
+    .device h2 { margin: 0; padding: 6px 8px; font-size: 11px; color: #eee; background: #555; }
+    iframe { width: 430px; height: 2500px; border: 0; display: block; }
+  </style>
+</head>
+<body>
+  <div class="row">
+    <div class="device">
+      <h2>index.html @ 430px</h2>
+      <iframe src="/src/client/index.html"></iframe>
+    </div>
+    <div class="device">
+      <h2>portfolio.html @ 430px</h2>
+      <iframe src="/src/client/portfolio.html"></iframe>
+    </div>
+    <div class="device">
+      <h2>contact.html @ 430px</h2>
+      <iframe src="/src/client/contact.html"></iframe>
+    </div>
+  </div>
+</body>
+</html>

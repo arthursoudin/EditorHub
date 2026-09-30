@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Editor Hub">
+  <defs>
+    <linearGradient id="ehGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1B4D3E" />
+      <stop offset="100%" stop-color="#0F171D" />
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="16" fill="url(#ehGrad)" stroke="#2C4048" stroke-width="2" />
+  <rect x="12" y="20" width="40" height="24" rx="5" fill="#0B1116" stroke="#E9AF22" stroke-width="2" />
+  <path d="M29 26.5 L39 32 L29 37.5 Z" fill="#E9AF22" />
+  <path d="M12 12 h14" stroke="#E9AF22" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M12 50 h22" stroke="#2A7A63" stroke-width="2.5" stroke-linecap="round" />
+</svg>

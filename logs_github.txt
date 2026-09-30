@@ -1,0 +1,6 @@
+# logs_github.txt — Editor Hub (Sprint 3 · MODO MOCK p/ portfólio)
+# Nenhuma chamada real à API do GitHub é feita. Este arquivo demonstra o
+# formato do registro que o painel simula a cada clique em "Confirmar".
+# Formato: [ISO] ACTION repo=owner/repo protocolo=X id=Y extra...
+# ---------------------------------------------------------------------------
+[2026-09-30T12:00:00.000Z] MOCK-INIT repo=arthursoudin/Editor-Landing msg="mock pronto — confirme um briefing no painel para simular o envio"

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Preview de viewport — Editor Hub</title>
+  <style>
+    body { margin: 0; background: #333; font-family: monospace; }
+    .row { display: flex; gap: 12px; padding: 12px; align-items: flex-start; }
+    .device { border: 1px solid #666; border-radius: 10px; overflow: hidden; background: #000; }
+    .device h2 { margin: 0; padding: 6px 8px; font-size: 11px; color: #eee; background: #555; font-weight: 400; }
+    iframe { border: 0; display: block; }
+  </style>
+</head>
+<body>
+  <div class="row" id="row"></div>
+  <script>
+    // Uso: viewport-preview.html?w=430&h=2500&pages=index,portfolio,contact
+    //      viewport-preview.html?w=1280&pages=admin/dashboard
+    const params = new URLSearchParams(location.search);
+    const width = Number(params.get('w')) || 430;
+    const height = Number(params.get('h')) || 2500;
+    const pages = (params.get('pages') || 'index,portfolio,contact')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => (p.indexOf('/') === -1 ? 'client/' + p : p));
+
+    const row = document.getElementById('row');
+    pages.forEach((page) => {
+      const device = document.createElement('div');
+      device.className = 'device';
+
+      const label = document.createElement('h2');
+      label.textContent = page + '.html @ ' + width + 'px';
+
+      const frame = document.createElement('iframe');
+      frame.width = String(width);
+      frame.height = String(height);
+      frame.src = '/src/' + page + '.html';
+
+      device.appendChild(label);
+      device.appendChild(frame);
+      row.appendChild(device);
+    });
+  </script>
+</body>
+</html>

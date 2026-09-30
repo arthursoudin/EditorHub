@@ -1,0 +1,4 @@
+\src\client\index.html -> OK
+\src\client\portfolio.html -> OK
+\src\client\contact.html -> OK
+\src\admin\dashboard.html -> OK

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sprint 1 — smoke test</title>
+</head>
+<body>
+  <h1>Smoke test — Sprint 1</h1>
+  <pre id="res">aguardando…</pre>
+
+  <iframe id="f-index" src="/src/client/index.html" width="1200" height="600"></iframe>
+  <iframe id="f-portfolio" src="/src/client/portfolio.html" width="1200" height="600"></iframe>
+  <iframe id="f-contact" src="/src/client/contact.html" width="1200" height="600"></iframe>
+  <iframe id="f-admin" src="/src/admin/dashboard.html" width="1200" height="600"></iframe>
+
+  <script src="/src/core/storage.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var lines = [];
+
+      function log(name, ok, extra) {
+        lines.push((ok ? "PASS" : "FAIL") + " :: " + name + (extra ? " :: " + extra : ""));
+      }
+
+      function report() {
+        document.getElementById("res").textContent =
+          lines.join("\n") + "\n---\nTOTAL=" + lines.length;
+      }
+
+      function waitFrame(id) {
+        return new Promise(function (resolve) {
+          var frame = document.getElementById(id);
+          function ready() {
+            var doc = frame.contentDocument;
+            return doc && doc.readyState === "complete" && !!doc.querySelector("script");
+          }
+          if (ready()) {
+            resolve(frame);
+            return;
+          }
+          frame.addEventListener("load", function () {
+            window.setTimeout(function () {
+              resolve(frame);
+            }, 150);
+          });
+        });
+      }
+
+      function api() {
+        return window.EditorHubStorage;
+      }
+
+      /* ---------------- storage ---------------- */
+      function testStorage() {
+        var store = api();
+        log("storage.js expõe a API", Boolean(store && store.create && store.getAll));
+
+        store.clear();
+
+        var record = store.create({
+          name: "Teste Automático",
+          email: "TESTE@Exemplo.com",
+          phone: "(11) 98888-7777",
+          company: "QA",
+          projectType: "Reels & Shorts",
+          budget: "R$ 500 – R$ 1.500",
+          deadline: "Esta semana",
+          message: "Mensagem de validação automática da Sprint 1.",
+          source: "smoke-test"
+        });
+
+        log("create() gera id e protocolo", /^MSG-/.test(record.id) && /^EH-/.test(record.protocol));
+        log("create() usa status 'nova'", record.status === "nova", record.status);
+        log("create() normaliza o e-mail", record.email === "teste@exemplo.com", record.email);
+        log("getAll() persiste no localStorage", store.getAll().length === 1);
+        log("chave correta no localStorage", !!window.localStorage.getItem("editorHub.messages.v1"));
+
+        var confirmed = store.setStatus(record.id, "confirmada");
+        log("setStatus() marca confirmada", confirmed.status === "confirmada");
+        log("setStatus() grava confirmedAt", Boolean(confirmed.confirmedAt));
+        log("timeline acumula eventos", confirmed.timeline.length === 2, confirmed.timeline.length);
+
+        var counters = store.countByStatus();
+        log("countByStatus() totaliza", counters.total === 1 && counters.confirmada === 1);
+
+        var thrown = false;
+        try {
+          store.create({ name: "", email: "x@y.com", message: "" });
+        } catch (err) {
+          thrown = true;
+        }
+        log("create() recusa payload inválido", thrown);
+
+        var removed = store.removeById(record.id);
+        log("removeById() apaga o registro", removed.length === 0);
+
+        store.clear();
+        log("clear() zera a lista", store.getAll().length === 0);
+      }
+      /* ---------------- index ---------------- */
+      function testIndex(frame) {
+        var doc = frame.contentDocument;
+        var cards = doc.querySelectorAll("#featured-grid .work");
+        log("index: destaques renderizados", cards.length === 3, cards.length + " cards");
+
+        var year = doc.querySelector("[data-current-year]").textContent;
+        log("index: ano dinâmico no rodapé", year === String(new Date().getFullYear()), year);
+
+        var toggle = doc.querySelector(".nav-toggle");
+        toggle.click();
+        log("index: menu mobile abre", doc.body.classList.contains("nav-open"));
+        doc.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        log("index: menu fecha com Esc", !doc.body.classList.contains("nav-open"));
+
+        log(
+          "index: link ativo marcado",
+          doc.querySelector('.site-nav a[data-nav="index"]').classList.contains("is-active")
+        );
+
+        doc.querySelector("#featured-grid .work__thumb").click();
+        var modal = doc.getElementById("work-modal");
+        log("index: lightbox abre", modal.classList.contains("is-open"));
+        log(
+          "index: lightbox preenche título",
+          doc.getElementById("work-modal-title").textContent.length > 3,
+          doc.getElementById("work-modal-title").textContent
+        );
+        doc.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        log("index: lightbox fecha com Esc", !modal.classList.contains("is-open"));
+
+        log(
+          "index: seções principais presentes",
+          doc.querySelectorAll("section").length >= 6 &&
+            !!doc.getElementById("servicos") &&
+            !!doc.querySelector(".cta")
+        );
+      }
+
+      /* ---------------- portfólio ---------------- */
+      function wait(ms) {
+        return new Promise(function (resolve) {
+          window.setTimeout(resolve, ms);
+        });
+      }
+
+      function testPortfolio(frame) {
+        var doc = frame.contentDocument;
+        var grid = doc.getElementById("work-grid");
+        var total = window.__totalProjects;
+
+        log(
+          "portfólio: todos os projetos visíveis",
+          grid.querySelectorAll(".work").length === total,
+          grid.querySelectorAll(".work").length + "/" + total
+        );
+        log(
+          "portfólio: contador de resultados",
+          /projetos encontrados/.test(doc.getElementById("portfolio-count").textContent),
+          doc.getElementById("portfolio-count").textContent
+        );
+
+        var chips = doc.querySelectorAll("#filter-chips .chip");
+        log("portfólio: 5 chips de filtro", chips.length === 5, chips.length);
+
+        doc.querySelector('.chip[data-filter="reels"]').click();
+        var reels = grid.querySelectorAll(".work").length;
+        log("portfólio: filtro reels", reels === 3, reels + " reels");
+        log(
+          "portfólio: chip ativo atualizado",
+          doc.querySelector('.chip[data-filter="reels"]').classList.contains("is-active") &&
+            doc.querySelector('.chip[data-filter="reels"]').getAttribute("aria-pressed") === "true"
+        );
+        log(
+          "portfólio: deep-link ?filtro=reels",
+          frame.contentWindow.location.search.indexOf("filtro=reels") !== -1,
+          frame.contentWindow.location.search
+        );
+
+        doc.querySelector(".work__thumb").click();
+        var modal = doc.getElementById("work-modal");
+        log("portfólio: lightbox abre pelo card", modal.classList.contains("is-open"));
+        modal.querySelector("[data-modal-close]").click();
+        log("portfólio: botão fechar funciona", !modal.classList.contains("is-open"));
+
+        var search = doc.getElementById("portfolio-search");
+        doc.querySelector('.chip[data-filter="all"]').click();
+        search.value = "vetta";
+        search.dispatchEvent(new Event("input"));
+
+        return wait(260)
+          .then(function () {
+            var found = grid.querySelectorAll(".work");
+            log("portfólio: busca por cliente", found.length === 1, found.length + " resultado");
+            search.value = "zzzz";
+            search.dispatchEvent(new Event("input"));
+            return wait(260);
+          })
+          .then(function () {
+            log("portfólio: estado vazio exibido", !!grid.querySelector(".empty-state"));
+            search.value = "";
+            search.dispatchEvent(new Event("input"));
+            return wait(260);
+          })
+          .then(function () {
+            doc.querySelector('.chip[data-filter="all"]').click();
+            log(
+              "portfólio: volta ao total",
+              grid.querySelectorAll(".work").length === total,
+              grid.querySelectorAll(".work").length + ""
+            );
+          });
+      }
+      /* ---------------- contato ---------------- */
+      function testContact(frame) {
+        var doc = frame.contentDocument;
+        var form = doc.getElementById("contact-form");
+        var store = api();
+
+        form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+        log(
+          "contato: validação bloqueia envio vazio",
+          doc.querySelectorAll("#contact-form .has-error").length >= 3,
+          doc.querySelectorAll("#contact-form .has-error").length + " campos com erro"
+        );
+        log(
+          "contato: mensagem de erro exibida",
+          doc.querySelector('[data-error-for="email"]').textContent.length > 0,
+          doc.querySelector('[data-error-for="email"]').textContent
+        );
+
+        var before = store.getAll().length;
+        doc.getElementById("name").value = "Cliente Smoke";
+        doc.getElementById("email").value = "cliente@smoke.com";
+        doc.getElementById("phone").value = "(11) 97777-1234";
+        doc.getElementById("company").value = "Smoke Corp";
+        doc.getElementById("projectType").value = "Vídeo institucional";
+        doc.getElementById("budget").value = "R$ 3.000 – R$ 8.000";
+        doc.getElementById("deadline").value = "Em até 15 dias";
+        doc.getElementById("message").value =
+          "Preciso de um institucional de 2 minutos para a feira do próximo mês.";
+        doc.getElementById("consent").checked = true;
+        doc.getElementById("consent").dispatchEvent(new Event("change"));
+        form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+
+        var after = store.getAll();
+        log("contato: mensagem persistida", after.length === before + 1, before + " → " + after.length);
+        log("contato: status inicial 'nova'", after[0] && after[0].status === "nova");
+        log("contato: origem registrada", after[0] && after[0].source === "contact.html");
+        log(
+          "contato: campos salvos corretamente",
+          after[0] && after[0].projectType === "Vídeo institucional" && after[0].budget === "R$ 3.000 – R$ 8.000",
+          after[0] ? after[0].projectType + " / " + after[0].deadline : "—"
+        );
+
+        var success = doc.getElementById("contact-success");
+        log("contato: card de sucesso visível", success.classList.contains("is-visible"));
+        log(
+          "contato: protocolo exibido",
+          /^EH-/.test(doc.getElementById("success-protocol").textContent),
+          doc.getElementById("success-protocol").textContent
+        );
+        log(
+          "contato: formulário oculto após envio",
+          doc.getElementById("contact-form-wrapper").classList.contains("hidden")
+        );
+        log(
+          "contato: link do WhatsApp com protocolo",
+          doc.getElementById("success-whatsapp").href.indexOf("wa.me") !== -1
+        );
+
+        doc.getElementById("new-message").click();
+        log(
+          "contato: 'nova mensagem' restaura o formulário",
+          !doc.getElementById("contact-form-wrapper").classList.contains("hidden") &&
+            !success.classList.contains("is-visible")
+        );
+      }
+
+      /* ---------------- painel (Sprint 2 + 3) ---------------- */
+      function testAdmin(frame) {
+        var doc = frame.contentDocument;
+        var win = frame.contentWindow;
+        var store = api();
+        store.clear();
+
+        log("painel: client.js carregado", Boolean(win.EditorHub && win.EditorHub.projects));
+        log("painel: storage.js disponível", Boolean(win.EditorHubStorage && win.EditorHubStorage.create));
+        log("painel: github_bridge carregado", Boolean(win.EditorHubGithub && win.EditorHubGithub.confirmAndSync));
+        log("painel: admin.js carregado", Boolean(win.EditorHubAdmin && win.EditorHubAdmin.refresh));
+
+        log("painel: lista de mensagens presente", Boolean(doc.getElementById("msg-list")));
+        log("painel: filtros de status presentes", doc.querySelectorAll("[data-status-filter]").length >= 6);
+        log("painel: busca presente", Boolean(doc.getElementById("msg-search")));
+        log("painel: bloco GitHub MOCK presente", Boolean(doc.getElementById("gh-download") && doc.getElementById("gh-log-preview")));
+        log("painel: bridge em modo MOCK", Boolean(win.EditorHubGithub && win.EditorHubGithub.MOCK === true));
+        log("painel: repo do mock", Boolean(win.EditorHubGithub) &&
+          win.EditorHubGithub.REPO === "arthursoudin/Editor-Landing");
+
+        /* Cria 2 mensagens pelo storage (mesmo contrato do formulário) */
+        store.create({
+          name: "Ana Painel", email: "ana@painel.com", phone: "(11) 98888-1111",
+          projectType: "Reels & Shorts", budget: "R$ 1.500", deadline: "5 dias",
+          message: "Mensagem criada pelo smoke da Sprint 2 para validar o painel.",
+          source: "smoke-test"
+        });
+        store.create({
+          name: "Bruno Painel", email: "bruno@painel.com", phone: "(21) 97777-2222",
+          projectType: "Podcast", budget: "A combinar", deadline: "Mensal",
+          message: "Segunda mensagem para validar filtros e contadores do painel.",
+          source: "smoke-test"
+        });
+
+        win.EditorHubAdmin.refresh();
+
+        var cards = doc.querySelectorAll("#msg-list .msg-card");
+        log("painel: 2 mensagens listadas", cards.length === 2, cards.length + " cards");
+
+        var statsBtn = doc.querySelector('#admin-stats [data-status-filter="nova"] strong');
+        log("painel: contador de novas = 2", statsBtn && statsBtn.textContent === "2",
+          statsBtn ? statsBtn.textContent : "sem stat");
+
+        doc.getElementById("msg-search").value = "bruno";
+        doc.getElementById("msg-search").dispatchEvent(new Event("input"));
+
+        return wait(300).then(function () {
+          var found = doc.querySelectorAll("#msg-list .msg-card");
+          log("painel: busca filtra por nome", found.length === 1, found.length + " resultado");
+
+          doc.getElementById("msg-search").value = "";
+          doc.getElementById("msg-search").dispatchEvent(new Event("input"));
+          return wait(300);
+        }).then(function () {
+          doc.querySelector('#status-chips [data-status-filter="nova"]').click();
+          var again = doc.querySelectorAll("#msg-list .msg-card");
+          log("painel: filtro por status 'nova'", again.length === 2, again.length + " cards");
+
+          /* Confirma a primeira → vira 'confirmada' + issue MOCK + log */
+          var firstId = store.getAll()[0].id;
+          log("painel: mock monta título da issue", (function () {
+            var p = win.EditorHubGithub.buildMockIssue(store.findById(firstId));
+            return p.title.indexOf("[Briefing") === 0 && p.repo === "arthursoudin/Editor-Landing";
+          })());
+
+          win.alert = function () {};
+          return win.EditorHubGithub.confirmAndSync(firstId).then(function (res) {
+            var updated = store.findById(firstId);
+            log("painel: confirmar muda status", updated.status === "confirmada", updated.status);
+            log("painel: issue anexada (simulada)", Boolean(updated.github && updated.github.simulated),
+              updated.github ? String(updated.github.number) : "sem github");
+            log("painel: issue aponta p/ Editor-Landing",
+              updated.github && updated.github.repo === "arthursoudin/Editor-Landing",
+              updated.github ? updated.github.repo : "—");
+
+            win.EditorHubAdmin.refresh();
+            var counters = store.countByStatus();
+            log("painel: contadores após confirmar",
+              counters.confirmada === 1 && counters.nova === 1,
+              "nova=" + counters.nova + " confirmada=" + counters.confirmada);
+
+            store.setStatus(firstId, "em-andamento");
+            log("painel: avança p/ em-andamento", store.findById(firstId).status === "em-andamento");
+            store.removeById(firstId);
+            log("painel: excluir remove 1", store.getAll().length === 1);
+            store.clear();
+            log("painel: clear zera após fluxo", store.getAll().length === 0);
+
+            var year = doc.querySelector("[data-current-year]");
+            log("painel: ano dinâmico no rodapé",
+              year && year.textContent === String(new Date().getFullYear()),
+              year ? year.textContent : "sem elemento");
+
+            var toggle = doc.querySelector(".nav-toggle");
+            toggle.click();
+            log("painel: menu mobile abre", doc.body.classList.contains("nav-open"));
+            doc.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+            log("painel: menu fecha com Esc", !doc.body.classList.contains("nav-open"));
+
+            log("painel: link ativo marcado",
+              doc.querySelector('.site-nav a[data-nav="dashboard"]').classList.contains("is-active"));
+          });
+        });
+      }
+
+      /* ---------------- execução ---------------- */
+      Promise.all([
+        waitFrame("f-index"),
+        waitFrame("f-portfolio"),
+        waitFrame("f-contact"),
+        waitFrame("f-admin")
+      ]).then(
+        function (frames) {
+          try {
+            window.__totalProjects = frames[1].contentWindow.EditorHub.projects.length;
+          } catch (err) {
+            window.__totalProjects = -1;
+          }
+
+          try {
+            testStorage();
+            testIndex(frames[0]);
+            testContact(frames[2]);
+
+            testAdmin(frames[3]).then(function () {
+              testPortfolio(frames[1]).then(function () {
+                api().clear();
+                report();
+              }, function (err) {
+                log("portfólio: exceção", false, String(err));
+                report();
+              });
+            }, function (err) {
+              log("painel: exceção", false, String(err && err.message ? err.message : err));
+              report();
+            });
+          } catch (err) {
+            log("erro inesperado", false, String(err && err.message ? err.message : err));
+            report();
+          }
+        },
+        function (err) {
+          lines.push("FAIL :: iframes não carregaram :: " + String(err));
+          report();
+        }
+      );
+    })();
+  </script>
+</body>
+</html>

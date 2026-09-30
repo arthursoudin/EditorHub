@@ -1,0 +1,4 @@
+assets verificados: 91
+logo.svg XML valido: OK
+quebrados: nenhum
+RESULTADO: OK

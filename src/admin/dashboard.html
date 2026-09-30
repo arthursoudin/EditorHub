@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel do editor — Editor Hub</title>
+  <meta name="description" content="Painel administrativo do Editor Hub: mensagens do briefing e integracao com o GitHub." />
+  <meta name="theme-color" content="#080d10" />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/svg+xml" href="../../public/assets/logo.svg" />
+  <script>document.documentElement.classList.add("js");</script>
+  <link rel="stylesheet" href="../client/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir para o conteúdo</a>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../client/index.html" aria-label="Editor Hub — página inicial">
+        <img class="brand__mark" src="../../public/assets/logo.svg" alt="" width="34" height="34" />
+        <span class="brand__text">Editor Hub<small>video &amp; motion</small></span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Abrir menu">
+        <span class="nav-toggle__bars"></span>
+      </button>
+      <nav class="site-nav" id="site-nav" aria-label="Navegação principal">
+        <ul>
+          <li><a href="../client/index.html" data-nav="index">Início</a></li>
+          <li><a href="../client/portfolio.html" data-nav="portfolio">Portfólio</a></li>
+          <li><a href="../client/contact.html" data-nav="contact">Contato</a></li>
+          <li><a href="dashboard.html" data-nav="dashboard" class="is-active">Painel</a></li>
+          <li><a class="btn btn--accent btn--sm" href="../client/contact.html">Solicitar orçamento</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="page-head">
+      <div class="container">
+        <nav class="breadcrumb" aria-label="Você está aqui">
+          <a href="../client/index.html">Início</a><span>/</span><strong>Painel</strong>
+        </nav>
+        <span class="eyebrow">Área do editor</span>
+        <h1>Painel de mensagens</h1>
+        <p class="lead">Briefings do formulário, com filtros por status. Ao confirmar, o painel <strong>simula</strong> o envio da task ao repositório <strong>arthursoudin/Editor-Landing</strong> (MOCK p/ portfólio: sem API real), exibe um alerta de sucesso e registra em <code>logs_github.txt</code>.</p>
+        <p class="lead text-dim" id="gh-mode" style="margin-top:8px">Carregando integração…</p>
+      </div>
+    </section>
+    <section class="section" style="padding-top:32px">
+      <div class="container">
+        <div class="admin-stats" id="admin-stats" role="group" aria-label="Filtrar por status"></div>
+
+        <div class="admin-toolbar">
+          <div class="field">
+            <label class="sr-only" for="msg-search">Buscar mensagens</label>
+            <input type="search" id="msg-search" placeholder="Buscar por nome, e-mail, protocolo…" autocomplete="off" />
+          </div>
+          <div class="chips" id="status-chips" role="group" aria-label="Status">
+            <button type="button" class="chip is-active" data-status-filter="todas" aria-pressed="true">Todas</button>
+            <button type="button" class="chip" data-status-filter="nova" aria-pressed="false">Novas</button>
+            <button type="button" class="chip" data-status-filter="confirmada" aria-pressed="false">Confirmadas</button>
+            <button type="button" class="chip" data-status-filter="em-andamento" aria-pressed="false">Em andamento</button>
+            <button type="button" class="chip" data-status-filter="concluida" aria-pressed="false">Concluídas</button>
+            <button type="button" class="chip" data-status-filter="recusada" aria-pressed="false">Recusadas</button>
+          </div>
+        </div>
+
+        <p class="msg-card__meta" id="msg-count" aria-live="polite">Carregando…</p>
+        <div class="msg-list" id="msg-list"></div>
+
+        <div class="card admin-empty" id="msg-empty" hidden>
+          <h2 class="card__title">Nenhuma mensagem por aqui</h2>
+          <p>Envie um briefing pelo formulário ou crie exemplos para testar o fluxo.</p>
+          <div class="row" style="justify-content:center">
+            <a class="btn btn--primary" href="../client/contact.html">Abrir formulário</a>
+            <button type="button" class="btn btn--ghost" id="seed-btn">Criar 2 exemplos</button>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <button type="button" class="btn btn--ghost btn--sm" id="clear-btn">Apagar tudo</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="card">
+          <h2 class="card__title">Integração GitHub — Sprint 3 (MOCK p/ portfólio)</h2>
+          <p class="card__text">Demonstração sem API real: ao clicar em <strong>Confirmar</strong>, o painel simula o envio da task, exibe um alerta de sucesso e registra a ação no espelho de <code>logs_github.txt</code> (localStorage + download). Nenhum token é pedido.</p>
+          <div class="row">
+            <button type="button" class="btn btn--primary btn--sm" id="gh-download">Baixar logs_github.txt</button>
+          </div>
+          <h3 style="font-size:0.95rem;margin:14px 0 6px">Prévia do log</h3>
+          <pre class="detail-msg" id="gh-log-preview" style="max-height:220px;overflow:auto">(carregando…)</pre>
+          <p class="field__hint">Para atualizar o arquivo na raiz do projeto, clique em Baixar e salve como <code>logs_github.txt</code> na raiz.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="msg-dialog" aria-labelledby="dlg-title" class="admin-dialog">
+    <div class="admin-dialog__head">
+      <h2 id="dlg-title">Mensagem</h2>
+      <form method="dialog"><button class="admin-dialog__close" aria-label="Fechar">✕</button></form>
+    </div>
+    <dl class="detail-grid" id="dlg-fields"></dl>
+    <h3 style="font-size:1rem">Mensagem</h3>
+    <p class="detail-msg" id="dlg-message"></p>
+    <h3 style="font-size:1rem;margin-top:12px">GitHub</h3>
+    <p class="msg-card__meta" id="dlg-github">—</p>
+    <div class="row" style="margin-top:16px">
+      <form method="dialog"><button class="btn btn--ghost">Fechar</button></form>
+      <button type="button" class="btn btn--accent" id="dlg-confirm">Confirmar</button>
+    </div>
+  </dialog>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <p class="text-dim mb-0">&copy; <span data-current-year>2026</span> Editor Hub · arthursoudin</p>
+        <p class="text-dim mb-0">Painel · Sprint 2 + 3</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="../core/storage.js"></script>
+  <script src="../core/github_bridge.js"></script>
+  <script src="../client/client.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
